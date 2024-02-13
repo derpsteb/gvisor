@@ -77,7 +77,7 @@ type UVM_DESTROY_RANGE_GROUP_PARAMS struct {
 
 // +marshal
 type UVM_REGISTER_GPU_VASPACE_PARAMS struct {
-	GPUUUID  [16]uint8
+	GPUUUID  NvUuid
 	RMCtrlFD int32
 	HClient  Handle
 	HVASpace Handle
@@ -94,13 +94,13 @@ func (p *UVM_REGISTER_GPU_VASPACE_PARAMS) SetRMCtrlFD(fd int32) {
 
 // +marshal
 type UVM_UNREGISTER_GPU_VASPACE_PARAMS struct {
-	GPUUUID  [16]uint8
+	GPUUUID  NvUuid
 	RMStatus uint32
 }
 
 // +marshal
 type UVM_REGISTER_CHANNEL_PARAMS struct {
-	GPUUUID  [16]uint8
+	GPUUUID  NvUuid
 	RMCtrlFD int32
 	HClient  Handle
 	HChannel Handle
@@ -121,7 +121,7 @@ func (p *UVM_REGISTER_CHANNEL_PARAMS) SetRMCtrlFD(fd int32) {
 
 // +marshal
 type UVM_UNREGISTER_CHANNEL_PARAMS struct {
-	GPUUUID  [16]uint8
+	GPUUUID  NvUuid
 	HClient  Handle
 	HChannel Handle
 	RMStatus uint32
@@ -158,7 +158,7 @@ type UVM_FREE_PARAMS struct {
 
 // +marshal
 type UVM_REGISTER_GPU_PARAMS struct {
-	GPUUUID     [16]uint8
+	GPUUUID     NvUuid
 	NumaEnabled uint8
 	Pad         [3]byte
 	NumaNodeID  int32
@@ -178,7 +178,7 @@ func (p *UVM_REGISTER_GPU_PARAMS) SetRMCtrlFD(fd int32) {
 
 // +marshal
 type UVM_UNREGISTER_GPU_PARAMS struct {
-	GPUUUID  [16]uint8
+	GPUUUID  NvUuid
 	RMStatus uint32
 }
 
@@ -193,7 +193,7 @@ type UVM_PAGEABLE_MEM_ACCESS_PARAMS struct {
 type UVM_SET_PREFERRED_LOCATION_PARAMS struct {
 	RequestedBase   uint64
 	Length          uint64
-    NvProcessorUUID [16]uint8
+	NvProcessorUUID NvUuid
 	RMStatus        uint32
 	Pad0            [4]byte
 }
@@ -210,7 +210,7 @@ type UVM_DISABLE_READ_DUPLICATION_PARAMS struct {
 type UVM_MAP_DYNAMIC_PARALLELISM_REGION_PARAMS struct {
 	Base     uint64
 	Length   uint64
-	GPUUUID  [16]uint8
+	GPUUUID  NvUuid
 	RMStatus uint32
 	Pad0     [4]byte
 }
@@ -253,7 +253,7 @@ const UVM_MAX_GPUS = NV_MAX_DEVICES
 
 // +marshal
 type UvmGpuMappingAttributes struct {
-	GPUUUID            [16]byte
+	GPUUUID            NvUuid
 	GPUMappingType     uint32
 	GPUCachingType     uint32
 	GPUFormatType      uint32
