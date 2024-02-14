@@ -93,12 +93,10 @@ func (v DriverVersion) isGreaterThan(other DriverVersion) bool {
 	}
 }
 
-type (
-	frontendIoctlHandler   func(fi *frontendIoctlState) (uintptr, error)
-	controlCmdHandler      func(fi *frontendIoctlState, ioctlParams *nvgpu.NVOS54Parameters) (uintptr, error)
-	allocationClassHandler func(fi *frontendIoctlState, ioctlParams *nvgpu.NVOS64ParametersV535, isNVOS64 bool) (uintptr, error)
-	uvmIoctlHandler        func(ui *uvmIoctlState) (uintptr, error)
-)
+type frontendIoctlHandler   func(fi *frontendIoctlState) (uintptr, error)
+type controlCmdHandler      func(fi *frontendIoctlState, ioctlParams *nvgpu.NVOS54Parameters) (uintptr, error)
+type allocationClassHandler func(fi *frontendIoctlState, ioctlParams *nvgpu.NVOS64ParametersV535, isNVOS64 bool) (uintptr, error)
+type uvmIoctlHandler        func(ui *uvmIoctlState) (uintptr, error)
 
 // A driverABIFunc constructs and returns a driverABI.
 // This indirection exists to avoid memory usage from unused driver ABIs.
@@ -134,10 +132,8 @@ type driverABI struct {
 
 // abis is a global map containing all supported Nvidia driver ABIs. This is
 // initialized on Init() and is immutable henceforth.
-var (
-	abis     map[DriverVersion]abiConAndChecksum
-	abisOnce sync.Once
-)
+var abis     map[DriverVersion]abiConAndChecksum
+var abisOnce sync.Once
 
 // Note: runfileChecksum is the checksum of the .run file of the driver installer for linux from
 // nvidia.
@@ -325,7 +321,7 @@ func Init() {
 		v525_105_17Checksum := "c635a21a282c9b53485f19ebb64a0f4b536a968b94d4d97629e0bc547a58142a"
 		v525_105_17 := addDriverABI(525, 105, 17, v525_105_17Checksum, v525_89_02)
 		v525_125_06Checksum := "b5275689f4a833c37a507717ac8f0ee2f1f5cd2b7e236ffa70aad8dfb7455b9d"
-		_ = addDriverABI(525, 125, 0o6, v525_125_06Checksum, v525_105_17)
+		_ = addDriverABI(525, 125, 6, v525_125_06Checksum, v525_105_17)
 
 		// 535.43.02 is an intermediate unqualified version from the main branch.
 		v535_43_02 := func() *driverABI {
@@ -344,7 +340,7 @@ func Init() {
 		}
 
 		v535_54_03Checksum := "454764f57ea1b9e19166a370f78be10e71f0626438fb197f726dc3caf05b4082"
-		v535_54_03 := addDriverABI(535, 54, 0o3, v535_54_03Checksum, v535_43_02)
+		v535_54_03 := addDriverABI(535, 54, 3, v535_54_03Checksum, v535_43_02)
 		// 535.86.05 is an intermediate unqualified version from the main branch.
 		v535_86_05 := func() *driverABI {
 			abi := v535_54_03()
@@ -354,7 +350,7 @@ func Init() {
 			return abi
 		}
 		v535_104_05Checksum := "2f9d609d1da770beee757636635c46e7ed8253ade887b87c7a5482e33fcbedc9"
-		v535_104_05 := addDriverABI(535, 104, 0o5, v535_104_05Checksum, v535_86_05)
+		v535_104_05 := addDriverABI(535, 104, 5, v535_104_05Checksum, v535_86_05)
 
 		// 535.104.12 does not exist on the main branch. It branched off the main
 		// branch at 535.104.05.
@@ -366,7 +362,7 @@ func Init() {
 
 		// 535.129.03 does not exist on the main branch. It branched off the main
 		// branch at 535.113.01.
-		_ = addDriverABI(535, 129, 0o3, "e6dca5626a2608c6bb2a046cfcb7c1af338b9e961a7dd90ac09bb8a126ff002e", v535_113_01)
+		_ = addDriverABI(535, 129, 3, "e6dca5626a2608c6bb2a046cfcb7c1af338b9e961a7dd90ac09bb8a126ff002e", v535_113_01)
 	})
 }
 
