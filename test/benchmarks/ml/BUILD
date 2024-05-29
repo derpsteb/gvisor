@@ -24,3 +24,17 @@ benchmark_test(
         "//test/metricsviz",
     ],
 )
+
+benchmark_test(
+    name = "vllm_test",
+    srcs = ["vllm_test.go"],
+    library = ":ml",
+    visibility = ["//:sandbox"],
+    deps = [
+        "//pkg/test/dockerutil",
+        "//test/benchmarks/harness",
+        "//test/benchmarks/tools",
+        "//test/metricsviz",
+        "@com_github_docker_docker//api/types/mount:go_default_library",
+    ],
+)
