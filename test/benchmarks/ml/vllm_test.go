@@ -27,6 +27,7 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"gvisor.dev/gvisor/pkg/test/dockerutil"
 	"gvisor.dev/gvisor/test/benchmarks/harness"
+	"gvisor.dev/gvisor/test/metricsviz"
 )
 
 func TestMain(m *testing.M) {
@@ -45,7 +46,7 @@ func doVLLMTest(b *testing.B) {
 	if err != nil {
 		b.Fatalf("failed to get machine: %v", err)
 	}
-	defer serverMachine.CleanUp()
+	// defer serverMachine.CleanUp()
 
 	b.Run("opt-125", func(b *testing.B) {
 		ctx := context.Background()
@@ -55,7 +56,8 @@ func doVLLMTest(b *testing.B) {
 
 		for i := 0; i < b.N; i++ {
 			serverCtr := serverMachine.GetNativeContainer(ctx, b)
-			defer serverCtr.CleanUp(ctx)
+			defer metricsviz.FromContainerLogs(ctx, b, serverCtr)
+			// defer serverCtr.CleanUp(ctx)
 			if err := harness.DropCaches(serverMachine); err != nil {
 				b.Skipf("failed to drop caches: %v. You probably need root.", err)
 			}
@@ -65,18 +67,11 @@ func doVLLMTest(b *testing.B) {
 			runOpts.CpusetCpus = "0"
 			runOpts.Image = "benchmarks/vllm"
 			runOpts.Env = []string{"PYTHONPATH=$PYTHONPATH:/vllm"}
-			runOpts.Mounts = []mount.Mount{
-				{
-					Source: "/home/guest/opt-125m",
-					Target: "/facebook/opt-125m",
-					Type:   "bind",
-				},
-			}
 
 			if err := serverCtr.Spawn(ctx, runOpts); err != nil {
 				b.Errorf("failed to run container: %v", err)
 			}
-			if out, err := serverCtr.WaitForOutput(ctx, "Uvicorn running on http://0.0.0.0:8000", 20*time.Second); err != nil {
+			if out, err := serverCtr.WaitForOutput(ctx, "Uvicorn running on http://0.0.0.0:8000", 10*time.Minute); err != nil {
 				b.Fatalf("failed to start vllm model: %v %s", err, out)
 			}
 
@@ -84,9 +79,9 @@ func doVLLMTest(b *testing.B) {
 			if err != nil {
 				b.Fatalf("failed to get machine: %v", err)
 			}
-			defer clientMachine.CleanUp()
+			// defer clientMachine.CleanUp()
 			clientCtr := clientMachine.GetNativeContainer(ctx, b)
-			defer clientCtr.CleanUp(ctx)
+			// defer clientCtr.CleanUp(ctx)
 
 			b.StartTimer()
 
@@ -99,23 +94,14 @@ func doVLLMTest(b *testing.B) {
 				Image:      "benchmarks/vllm",
 				Env:        []string{"PYTHONPATH=$PYTHONPATH:/vllm"},
 				Mounts: []mount.Mount{
-					{
-						Source: "/home/guest/opt-125m",
-						Target: "/facebook/opt-125m",
-						Type:   "bind",
-					},
-					{
-						Source: "/home/guest/ShareGPT_V3_unfiltered_cleaned_split.json",
-						Target: "/ShareGPT_V3_unfiltered_cleaned_split.json",
-						Type:   "bind",
-					},
+					// The logs dir is used because vllm only outputs json to a file.
 					{
 						Source: logsDir,
 						Target: "/tmp",
 						Type:   "bind",
 					},
 				},
-			}, "/vllm/benchmarks/benchmark_serving.py", "--host", "vllmctr", "--model", "/facebook/opt-125m", "--tokenizer", "/facebook/opt-125m", "--endpoint", "/v1/completions", "--backend", "openai", "--dataset", "/ShareGPT_V3_unfiltered_cleaned_split.json", "--save-result", "--result-dir", "/tmp")
+			}, "/vllm/benchmarks/benchmark_serving.py", "--host", "vllmctr", "--model", "/model", "--tokenizer", "/model", "--endpoint", "/v1/completions", "--backend", "openai", "--dataset", "/ShareGPT_V3_unfiltered_cleaned_split.json", "--save-result", "--result-dir", "/tmp")
 			if err != nil {
 				b.Errorf("failed to run container: %v logs: %s", err, out)
 			}
@@ -127,8 +113,11 @@ func doVLLMTest(b *testing.B) {
 				b.Errorf("failed to parse vllm output: %v", err)
 			}
 			b.ReportMetric(float64(metrics.Completed), "requests")
-			b.ReportMetric(metrics.OutputThroughput, "output_throughput")
 			b.ReportMetric(metrics.RequestThroughput, "request_throughput")
+			b.ReportMetric(metrics.InputThroughput, "input_tok_throughput")
+			b.ReportMetric(metrics.OutputThroughput, "output_tok_throughput")
+			b.ReportMetric(metrics.MedianTTFTMS, "median_ttft_ms")
+			b.ReportMetric(metrics.MediaTPOTMS, "median_tpot_ms")
 		}
 	})
 }
