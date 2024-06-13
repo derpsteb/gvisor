@@ -27,7 +27,6 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"gvisor.dev/gvisor/pkg/test/dockerutil"
 	"gvisor.dev/gvisor/test/benchmarks/harness"
-	"gvisor.dev/gvisor/test/metricsviz"
 )
 
 func TestMain(m *testing.M) {
@@ -46,7 +45,7 @@ func doVLLMTest(b *testing.B) {
 	if err != nil {
 		b.Fatalf("failed to get machine: %v", err)
 	}
-	// defer serverMachine.CleanUp()
+	defer serverMachine.CleanUp()
 
 	b.Run("opt-125", func(b *testing.B) {
 		ctx := context.Background()
@@ -56,15 +55,13 @@ func doVLLMTest(b *testing.B) {
 
 		for i := 0; i < b.N; i++ {
 			serverCtr := serverMachine.GetNativeContainer(ctx, b)
-			defer metricsviz.FromContainerLogs(ctx, b, serverCtr)
-			// defer serverCtr.CleanUp(ctx)
+			defer serverCtr.CleanUp(ctx)
 			if err := harness.DropCaches(serverMachine); err != nil {
 				b.Skipf("failed to drop caches: %v. You probably need root.", err)
 			}
 
 			// Run vllm.
 			runOpts := dockerutil.GPURunOpts()
-			runOpts.CpusetCpus = "0"
 			runOpts.Image = "benchmarks/vllm"
 			runOpts.Env = []string{"PYTHONPATH=$PYTHONPATH:/vllm"}
 
@@ -79,9 +76,9 @@ func doVLLMTest(b *testing.B) {
 			if err != nil {
 				b.Fatalf("failed to get machine: %v", err)
 			}
-			// defer clientMachine.CleanUp()
+			defer clientMachine.CleanUp()
 			clientCtr := clientMachine.GetNativeContainer(ctx, b)
-			// defer clientCtr.CleanUp(ctx)
+			defer clientCtr.CleanUp(ctx)
 
 			b.StartTimer()
 
@@ -89,10 +86,9 @@ func doVLLMTest(b *testing.B) {
 			logsDir := b.TempDir()
 
 			out, err := clientCtr.Run(ctx, dockerutil.RunOpts{
-				Links:      []string{serverCtr.MakeLink("vllmctr")},
-				CpusetCpus: "0",
-				Image:      "benchmarks/vllm",
-				Env:        []string{"PYTHONPATH=$PYTHONPATH:/vllm"},
+				Links: []string{serverCtr.MakeLink("vllmctr")},
+				Image: "benchmarks/vllm",
+				Env:   []string{"PYTHONPATH=$PYTHONPATH:/vllm"},
 				Mounts: []mount.Mount{
 					// The logs dir is used because vllm only outputs json to a file.
 					{
@@ -137,6 +133,7 @@ type metrics struct {
 	MeanTPOTMS        float64 `json:"mean_tpot_ms"`
 	MediaTPOTMS       float64 `json:"median_tpot_ms"`
 	P99TPOTMS         float64 `json:"p99_tpot_ms"`
+	// metrics that are available but unused so far.
 	// InputLens         []int   `json:"input_lens"`
 	// OutputLens        []int   `json:"output_lens"`
 	// TTFTs             []float64   `json: "ttfts"`
